@@ -16,7 +16,7 @@ jobs:
           sudo apt-get update && sudo apt-get install debhelper dput tcl-tls libsystemd-dev pkg-config
     - name: Fix /usr/local/lib permissions
       run: |
-          sudo chown -R $USER /usr/local/lib
+          ls -lR /usr/local/lib/node_modules/netlify-cli
     - name: Setup GPG key
       run: |
           mkdir -p ~/.gnupg
