@@ -33,7 +33,7 @@ jobs:
               ( cd ${dist} && tar xfz redis_${VERSION}.orig.tar.gz ) ;\
               cp -pr debian ${dist}/redis-${VERSION} ;\
               sed -i "s/@RELEASE@/$dist/g" ${dist}/redis-${VERSION}/debian/changelog ;\
-              ( cd ${dist} && dpkg-buildpackage -S ) ;\
+              ( cd ${dist}/redis-${VERSION} && dpkg-buildpackage -S ) ;\
           done
       env:
         DISTS: "xenial bionic focal groovy hirsute"
