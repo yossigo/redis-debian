@@ -1,6 +1,9 @@
-name: Package
+name: Build and Publish to APT
 
-on: push
+on:
+  push:
+    branches:
+    - release/**
 
 jobs:
   build-source-package:
