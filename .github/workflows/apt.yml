@@ -27,14 +27,16 @@ jobs:
             debhelper dput tcl-tls libsystemd-dev pkg-config
     - name: Determine version
       run: |
-          VERSION=$(head -1 debian/changelog | sed 's/^.*([0-9]*:*\([0-9.]*\)-.*$/\1/')
+          VERSION=7.0.0
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
     - name: Get source tarball
       run: |
-          curl --silent -L "https://github.com/redis/redis/archive/${VERSION}.tar.gz" -o redis_${VERSION}.orig.tar.gz
+          curl --silent -L "https://github.com/redis/redis/archive/unstable.tar.gz" -o redis_unstable.orig.tar.gz
+          tar vxfz redis_unstable.orig.tar.gz
+          mv redis-unstable redis-7.0.0
+          tar cvfz redis_7.0.0.orig.tar.gz redis-7.0.0
     - name: Build source package
       run: |
-          tar --extract --gunzip --file redis_${VERSION}.orig.tar.gz
           cp -pr debian redis-${VERSION}
           sed -i "s/@RELEASE@/${{ matrix.dist }}/g" redis-${VERSION}/debian/changelog
           ( cd redis-${VERSION} && dpkg-buildpackage -S )
@@ -127,45 +129,3 @@ jobs:
       run: |
         service redis-sentinel start
         echo ping | redis-cli -p 26379
-
-  upload-packages:
-    env:
-      DEB_S3_VERSION: "0.11.3"
-    runs-on: ubuntu-latest
-    needs: smoke-test-packages
-    steps:
-    - name: Setup APT Signing key
-      run: |
-          mkdir -m 0700 -p ~/.gnupg
-          echo "$APT_SIGNING_KEY" | gpg --import
-      env:
-        APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
-    - name: Get binary packages
-      uses: actions/download-artifact@v2
-    - name: Setup ruby
-      uses: actions/setup-ruby@v1
-      with:
-          ruby-version: "2.7"
-    - name: Install deb-s3
-      run: |
-          curl -sLO https://github.com/deb-s3/deb-s3/releases/download/${{ env.DEB_S3_VERSION }}/deb-s3-${{ env.DEB_S3_VERSION }}.gem
-          gem install deb-s3-${{ env.DEB_S3_VERSION }}.gem
-    - name: Upload packages
-      run: |
-        for dir in binary-*; do \
-            dist=$(echo $dir | cut -d- -f 2) ; \
-            deb-s3 upload \
-                --bucket ${{ env.APT_S3_BUCKET }} \
-                --s3-region ${{ env.APT_S3_REGION }} \
-                --codename $dist \
-                --preserve-versions \
-                --fail-if-exists \
-                --sign \
-                --prefix deb \
-                $dir/*.deb ; \
-        done
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.APT_S3_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.APT_S3_SECRET_ACCESS_KEY }}
-        APT_S3_BUCKET: ${{ secrets.APT_S3_BUCKET }}
-        APT_S3_REGION: ${{ secrets.APT_S3_REGION }}
